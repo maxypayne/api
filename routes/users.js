@@ -1,10 +1,11 @@
 const express = require('express');
+
 const router = express.Router();
 const User = require('../schemas/user');
 
 router.post('/checkEmail', async (req, res) => {
   const { body: { email } } = req;
-  const user = await User.findOne({email});
+  const user = await User.findOne({ email });
   const emailExists = !!user;
   res.json({ emailExists });
 });
@@ -12,7 +13,6 @@ router.post('/checkEmail', async (req, res) => {
 router.post('/checkUsername', async (req, res) => {
   const { body: { username } } = req;
   const user = await User.findOne({ username });
-  console.log({user})
   const usernameExists = !!user;
   res.json({ usernameExists });
 });

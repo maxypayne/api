@@ -1,9 +1,10 @@
 const express = require('express');
+
 const router = express.Router();
-const User = require('../schemas/user');
-const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const jwtDecode = require('jwt-decode');
+const bcrypt = require('bcrypt');
+const User = require('../schemas/user');
 
 router.post('/login', async (req, res, next) => {
   const { body } = req;
@@ -20,7 +21,7 @@ router.post('/login', async (req, res, next) => {
           {expiresIn: '24h'}
         );
         return res.json({ jwt: token, email });
-      } else  {
+      } else {
         return res.json({errMessage: 'L\'identifiant ou le mot de passe est incorrect'});
       }
     } else {
@@ -34,23 +35,18 @@ router.post('/signup', async (req, res, next) => {
   const { body } = req;
   if (body) {
     const {email, password, ...rest} = body;
-    const findUser =  await User.findOne({email});
+    const findUser = await User.findOne({email});
     if (!findUser) {
       const hashedPassword = await bcrypt.hash(password, 12);
       if (hashedPassword) {
-        const createUser = await new User({email, password: hashedPassword, ...rest}).save();
-        if (createUser) {
-          return res.json({message: 'User created'});
-        }
-      } else {
-        return res.json({errMessage: 'Bcrypt failed'});
+        const createUser = await new User({email, password: hashedPassword, ...rest}).save().catch(_ => null);
+        return res.json(createUser ? {message: 'User created'} : { errMessage: 'Create user failed' });
       }
-    } else {
-      return res.json({errMessage: 'This email already exists'})
+      return res.json({errMessage: 'Hash failed'});
     }
-  } else {
-    return res.json ({errMessage: 'Missing body infos'})
+    return res.json({errMessage: 'This email already exists'})
   }
+  return res.json ({errMessage: 'Missing body infos'})
 });
 router.get('/userInfos', (req, res) => {
   const { headers: { authorization } } = req;
@@ -72,25 +68,19 @@ router.post('/checkPassword', async (req, res) => {
     const user = await User.findOne({email});
     if (user) {
       const {password} = user;
-      console.log({password});
-      console.log({currentPassword});
-      console.log({newPassword});
       // const isMatch = true;
       const isMatch = await bcrypt.compare(currentPassword, password).catch(err => console.log(err));
-      console.log({isMatch})
       if (isMatch) {
         const hashedPassword = await bcrypt.hashSync(newPassword, 12);
-        console.log(hashedPassword)
         await User.findOneAndUpdate({ email }, { password: hashedPassword });
         res.json({ message: 'Password was updated successfully' });
       } else {
         res.json({ errMessage: 'Your old password is incorect' });
       }
     } else {
-      res.json({errMessage: 'User is undefined'});
+      res.json({ errMessage: 'User is undefined' });
     }
   } else {
-    console.log('infos problem');
     res.json({errMessage: 'token is missing'});
   }
 });
