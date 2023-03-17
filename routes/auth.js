@@ -20,7 +20,7 @@ router.post('/login', async (req, res, next) => {
           process.env.AUTH_SECRET_KEY,
           {expiresIn: '24h'}
         );
-        return res.json({ jwt: token, email });
+        return res.json({ token, email });
       } else {
         return res.json({errMessage: 'L\'identifiant ou le mot de passe est incorrect'});
       }
@@ -33,18 +33,18 @@ router.post('/login', async (req, res, next) => {
 });
 router.post('/signup', async (req, res, next) => {
   const { body } = req;
-  if (body) {
-    const {email, password, ...rest} = body;
-    const findUser = await User.findOne({email});
-    if (!findUser) {
-      const hashedPassword = await bcrypt.hash(password, 12);
-      if (hashedPassword) {
-        const createUser = await new User({email, password: hashedPassword, ...rest}).save().catch(_ => null);
-        return res.json(createUser ? {message: 'User created'} : { errMessage: 'Create user failed' });
+    if (body) {
+      const {email, password, ...rest} = body;
+      const findUser = await User.findOne({email});
+      if (!findUser) {
+        const hashedPassword = await bcrypt.hash(password, 12);
+        if (hashedPassword) {
+          const createUser = await new User({email, password: hashedPassword, ...rest}).save().catch(_ => null);
+          return res.json(createUser ? {message: 'User created'} : { errMessage: 'Create user failed' });
+        }
+        return res.json({errMessage: 'Hash failed'});
       }
-      return res.json({errMessage: 'Hash failed'});
-    }
-    return res.json({errMessage: 'This email already exists'})
+      return res.json({errMessage: 'This email already exists'})
   }
   return res.json ({errMessage: 'Missing body infos'})
 });
