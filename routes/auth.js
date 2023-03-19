@@ -8,7 +8,8 @@ const User = require('../schemas/user');
 
 router.post('/login', async (req, res, next) => {
   const { body } = req;
-  if (body) {
+  const fields = ['email', 'password'];
+  if (body && fields.every(x => body[x])) {
     const { email, password } = body;
     const user = await User.findOne({email}).catch(err => console.log(err));
     if (user) {
@@ -20,7 +21,7 @@ router.post('/login', async (req, res, next) => {
           process.env.AUTH_SECRET_KEY,
           {expiresIn: '24h'}
         );
-        return res.json({ token, email });
+        return res.json({ token, email, username });
       } else {
         return res.json({errMessage: 'L\'identifiant ou le mot de passe est incorrect'});
       }
@@ -34,17 +35,18 @@ router.post('/login', async (req, res, next) => {
 router.post('/signup', async (req, res, next) => {
   const { body } = req;
     if (body) {
-      const {email, password, ...rest} = body;
-      const findUser = await User.findOne({email});
-      if (!findUser) {
+      const {email, password, username, ...rest} = body;
+      const user = await User.findOne({email});
+      if (user && username && user.username === username) return res.json({errMessage: 'Username already exists'});
+      if (user && email && user.email === email) return res.json({errMessage: 'This email already exists'});
+      if (!user) {
         const hashedPassword = await bcrypt.hash(password, 12);
         if (hashedPassword) {
-          const createUser = await new User({email, password: hashedPassword, ...rest}).save().catch(_ => null);
+          const createUser = await new User({email, password: hashedPassword, username, ...rest}).save().catch(_ => null);
           return res.json(createUser ? {message: 'User created'} : { errMessage: 'Create user failed' });
         }
         return res.json({errMessage: 'Hash failed'});
       }
-      return res.json({errMessage: 'This email already exists'})
   }
   return res.json ({errMessage: 'Missing body infos'})
 });
